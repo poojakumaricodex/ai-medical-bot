@@ -1,3 +1,4 @@
+
 import streamlit as st
 from chatbot.data_loader import load_conditions
 from chatbot.symptom_extractor import extract_symptoms
@@ -23,19 +24,15 @@ selected_language = st.selectbox("Choose your language:", list(langs.keys()))
 lang_code = langs[selected_language]
 st.session_state.lang = lang_code
 
-# Detect language change and restart if changed
-if "selected_language" not in st.session_state:
-    st.session_state.selected_language = selected_language
-elif st.session_state.selected_language != selected_language:
-    preserved_lang = st.session_state.get("selected_language", selected_language)
-    preserved_symptoms = st.session_state.get("last_symptoms", "")
-    st.session_state.clear()
-    st.session_state.selected_language = preserved_lang
-    st.session_state.last_symptoms = preserved_symptoms
-
-    st.session_state.selected_language = selected_language
+# Track language change and reset session
+if "prev_lang" not in st.session_state:
+    st.session_state.prev_lang = lang_code
+elif st.session_state.prev_lang != lang_code:
+    # Language has changed, so reset all relevant session state variables
+    for key in list(st.session_state.keys()):
+        del st.session_state[key]
+    st.session_state.prev_lang = lang_code
     st.rerun()
-
 
 
 conditions = load_conditions()
@@ -79,22 +76,7 @@ if st.session_state.chat_started:
         with st.chat_message(entry["role"]):
             st.markdown(entry["message"])
 
-    user_input = st.chat_input(translate_text("Enter your symptoms", src="en", dest=lang_code)) 
-    if st.session_state.phase == "symptom_input":
-        if "last_symptoms" not in st.session_state:
-            st.session_state.last_symptoms = user_input
-        elif user_input and user_input != st.session_state.last_symptoms:
-            preserved_lang = st.session_state.get("selected_language", selected_language)
-            preserved_symptoms = st.session_state.get("last_symptoms", "")
-            st.session_state.clear()
-            st.session_state.selected_language = preserved_lang
-            st.session_state.last_symptoms = preserved_symptoms
-
-            st.session_state.selected_language = selected_language
-            st.session_state.last_symptoms = user_input
-            st.rerun()
-
-
+    user_input = st.chat_input(translate_text("Enter your symptoms", src="en", dest=lang_code))
     if user_input:
         translated_input = translate_text(user_input, src=lang_code, dest='en')
 
